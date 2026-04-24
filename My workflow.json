@@ -1,0 +1,1103 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "subject:invoice OR subject:Invoice AND has:attachment",
+          "readStatus": "unread"
+        },
+        "options": {
+          "dataPropertyAttachmentsPrefixName": "attachment_0",
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "2e4e6dd6-c9d9-4f9b-8978-dad2b24efdeb",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jM6rHdQsXAtrqZXK",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $binary.attachment_00.mimeType }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "8afbf3b9-1355-47ca-a7c8-891b08586fe6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "pdf"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "568d6a0c-2b07-468a-b68e-b3776933b587",
+                    "leftValue": "={{ $binary.attachment_00.mimeType }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "docs"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "394b0db4-69d9-43e2-b997-260ddc3556b1",
+                    "leftValue": "={{ $binary.attachment_00.mimeType }}",
+                    "rightValue": "image/",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        -16
+      ],
+      "id": "af4a4bc7-5985-4092-8d1d-814d69837c78",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment_00",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        -192
+      ],
+      "id": "97bac780-b0c1-4d68-8616-c752cc9117e1",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.ocr.space/parse/image",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "K82486687488957"
+            },
+            {
+              "name": " language",
+              "value": "eng"
+            },
+            {
+              "name": "isOverlayRequired",
+              "value": "false"
+            },
+            {
+              "name": "filetype",
+              "value": "PNG"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "attachment_00"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        224
+      ],
+      "id": "41e867c2-b796-403e-a0ab-1fdb008989f5",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "attachment_00",
+        "destinationKey": "text ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        0
+      ],
+      "id": "5a567822-3448-401e-bef2-344f40b77e5e",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        848,
+        0
+      ],
+      "id": "c200950e-1355-4458-ae77-bf1c647872ef",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = $json.ParsedResults[0].ParsedText;\nreturn [{ json: { text: result } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        224
+      ],
+      "id": "51226900-973f-434a-9e67-fa408d7f3f70",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"prompt\": \"Extract these fields from this invoice and return ONLY valid JSON: invoice_number, invoice_date, seller_name, seller_address, buyer_name, buyer_address, ship_to_address, gst_tax_amount, grand_total, currency, payment_terms, tracking_number, carrier_name, incoterms. Invoice text: {{ $json.text }}\"\n}\n",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1072,
+        16
+      ],
+      "id": "0150e6ae-f258-48e1-9fa9-f653ce74323d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-robotics-er-1.6-preview",
+          "mode": "list",
+          "cachedResultName": "models/gemini-robotics-er-1.6-preview"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=={{ $json.prompt }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1280,
+        16
+      ],
+      "id": "27fb8304-b98d-4a42-9549-39c5c706b470",
+      "name": "Message a model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Rz80sYQ1tgXPSAwU",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.content.parts[0].text;\nconst cleaned = raw.replace(/```json|```/g, '').trim();\nconst parsed = JSON.parse(cleaned);\nreturn [{ json: parsed }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        16
+      ],
+      "id": "795ae134-2bd3-4606-934d-37aca8dbc46c",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const subject = ($('Gmail Trigger').item.json.subject || '').toLowerCase();\nconst invoiceKeywords = ['invoice', 'inv-', 'inv ', 'bill', 'receipt', 'payment', 'tax invoice'];\nconst isInvoice = invoiceKeywords.some(k => subject.includes(k));\nif (!isInvoice) {\n  throw new Error('SKIP - Not an invoice email: ' + subject);\n}\nconst data = $('Edit Fields').item.json;\n\nconst requiredFields = [\n  'invoice_number',\n  'invoice_date',\n  'seller_name',\n  'seller_address',\n  'buyer_name',\n  'buyer_address',\n  'grand_total',\n  'currency',\n  'gst_tax_amount',\n  'payment_terms',\n  'tracking_number',\n  'carrier_name',\n  'incoterms'\n];\n\nconst missing = [];\nconst errors = [];\nconst missingDetails = [];\nconst errorDetails = [];\n\nfor (const field of requiredFields) {\n  const val = data[field];\n\n  // Check missing\n  if (!val || val === '' || val === null || val === 'null' || val === 'N/A') {\n    missing.push(field);\n    missingDetails.push(`\"${field}\" is missing — no value found`);\n    continue;\n  }\n\n  // Check wrong values\n  if (field === 'invoice_date') {\n    const dateRegex = /^\\d{2}-\\d{2}-\\d{4}$/;\n    if (!dateRegex.test(val)) {\n      errors.push(field);\n      errorDetails.push(`\"invoice_date\" has wrong value \"${val}\" — expected format DD-MM-YYYY (e.g. 24-04-2026)`);\n    }\n  }\n\n  if (field === 'grand_total') {\n    if (isNaN(Number(val)) || Number(val) <= 0) {\n      errors.push(field);\n      errorDetails.push(`\"grand_total\" has wrong value \"${val}\" — must be a positive number (e.g. 234112)`);\n    }\n  }\n\n  if (field === 'gst_tax_amount') {\n    if (isNaN(Number(val)) || Number(val) < 0) {\n      errors.push(field);\n      errorDetails.push(`\"gst_tax_amount\" has wrong value \"${val}\" — must be a number (e.g. 35712)`);\n    }\n  }\n\n  if (field === 'currency') {\n    const validCurrencies = ['INR', 'USD', 'EUR', 'GBP', 'AED'];\n    if (!validCurrencies.includes(val.toUpperCase())) {\n      errors.push(field);\n      errorDetails.push(`\"currency\" has wrong value \"${val}\" — must be one of: INR, USD, EUR, GBP, AED`);\n    }\n  }\n\n  if (field === 'invoice_number') {\n    if (val.length < 3) {\n      errors.push(field);\n      errorDetails.push(`\"invoice_number\" has wrong value \"${val}\" — too short, must be at least 3 characters`);\n    }\n  }\n\n  if (field === 'payment_terms') {\n    const validTerms = ['net 15 days', 'net 30 days', 'net 45 days', 'net 60 days', 'immediate', 'advance'];\n    if (!validTerms.includes(val.toLowerCase())) {\n      errors.push(field);\n      errorDetails.push(`\"payment_terms\" has wrong value \"${val}\" — expected: Net 15 Days, Net 30 Days, Net 45 Days etc.`);\n    }\n  }\n}\n\n// Determine status\nlet status = '';\nlet is_valid = false;\n\nif (missing.length === 0 && errors.length === 0) {\n  status = 'Complete — All fields present and valid';\n  is_valid = true;\n} else if (missing.length > 0 && errors.length === 0) {\n  status = 'Incomplete — ' + missing.length + ' field(s) missing: ' + missing.join(', ');\n  is_valid = false;\n} else if (missing.length === 0 && errors.length > 0) {\n  status = 'Error — ' + errors.length + ' field(s) have wrong values: ' + errors.join(', ');\n  is_valid = false;\n} else {\n  status = 'Incomplete + Error — Missing: ' + missing.join(', ') + ' | Wrong values: ' + errors.join(', ');\n  is_valid = false;\n}\n\n// Full detail report\nconst fullReport = [\n  ...missingDetails,\n  ...errorDetails\n].join('\\n');\n\nreturn [{\n  json: {\n    ...data,\n    is_valid          : is_valid,\n    status            : status,\n    missing_fields    : missing.length > 0 ? missing.join(', ') : 'None',\n    missing_details   : missingDetails.length > 0 ? missingDetails.join('\\n') : 'None',\n    error_fields      : errors.length > 0 ? errors.join(', ') : 'None',\n    error_details     : errorDetails.length > 0 ? errorDetails.join('\\n') : 'None',\n    full_report       : fullReport.length > 0 ? fullReport : 'All fields complete and valid'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        16
+      ],
+      "id": "bee12ce5-1c23-454e-82ee-624fbb750613",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "34bbbe7e-33f4-4dc1-ad4b-d6cd9b0d09d7",
+              "leftValue": "={{ $json.is_invoice_email }}\n",
+              "rightValue": "\"is true\"",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2048,
+        16
+      ],
+      "id": "b7e6f9a7-5541-4641-8050-1fb23aa6538b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $json.invoice_number }}_{{ $json.invoice_date }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "15VuB1igtgGaeXGZBc1MQkpsMWC6hV9mj",
+          "mode": "list",
+          "cachedResultName": "invoice ",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/15VuB1igtgGaeXGZBc1MQkpsMWC6hV9mj"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2224,
+        -96
+      ],
+      "id": "104a6b2e-89d5-42f3-bc85-b4d9cd5711b6",
+      "name": "Create folder",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "DSe6rZjtltlAHb0n",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "={{ $('Gmail Trigger').item.binary.attachment_00 }}",
+        "name": "={{ $('If').item.json.invoice_number }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Create folder').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2384,
+        -112
+      ],
+      "id": "33d89a77-b2c3-4c5d-a80e-8258a6dab3e8",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "DSe6rZjtltlAHb0n",
+          "name": "Google Drive OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('If').item.json;\n\nconst fields = [\n  'invoice_number',\n  'invoice_date',\n  'seller_name',\n  'seller_address',\n  'buyer_name',\n  'buyer_address',\n  'grand_total',\n  'currency',\n  'gst_tax_amount',\n  'payment_terms',\n  'tracking_number',\n  'carrier_name',\n  'incoterms'\n];\n\nconst missing = [];\n\nfor (const field of fields) {\n  const val = data[field];\n  if (!val || val === '' || val === null || val === 'null' || val === 'N/A') {\n    missing.push(field);\n  }\n}\n\nconst missingText = missing.length === 0 ? 'None' : missing.join(', ');\nconst status = missing.length === 0 ? 'Complete' : 'Incomplete';\n\nreturn [{\n  json: {\n    invoice_number: data.invoice_number || 'N/A',\n    invoice_date: data.invoice_date || 'N/A',\n    seller_name: data.seller_name || 'N/A',\n    buyer_name: data.buyer_name || 'N/A',\n    grand_total: data.grand_total || 'N/A',\n    currency: data.currency || 'N/A',\n    gst_tax_amount: data.gst_tax_amount || 'N/A',\n    payment_terms: data.payment_terms || 'N/A',\n    tracking_number: data.tracking_number || 'N/A',\n    carrier_name: data.carrier_name || 'N/A',\n    incoterms: data.incoterms || 'N/A',\n    status: status,\n    missing_fields: missingText\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2592,
+        -112
+      ],
+      "id": "ccd6a3a9-c63e-4411-bc57-73599a3db730",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Bb2tRVhmYthjBr1gzoFbGfgnryptiTS_1Kgxk9uaOQA",
+          "mode": "list",
+          "cachedResultName": "Invoice_Tracker_v3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb2tRVhmYthjBr1gzoFbGfgnryptiTS_1Kgxk9uaOQA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 245022230,
+          "mode": "list",
+          "cachedResultName": "Invoice Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb2tRVhmYthjBr1gzoFbGfgnryptiTS_1Kgxk9uaOQA/edit#gid=245022230"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_date",
+              "displayName": "invoice_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "seller_name",
+              "displayName": "seller_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "buyer_name",
+              "displayName": "buyer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "grand_total",
+              "displayName": "grand_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gst_tax_amount",
+              "displayName": "gst_tax_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_terms",
+              "displayName": "payment_terms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tracking_number",
+              "displayName": "tracking_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "carrier_name",
+              "displayName": "carrier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "incoterms",
+              "displayName": "incoterms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_on",
+              "displayName": "received_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "missing_fields",
+              "displayName": "missing_fields",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2800,
+        -112
+      ],
+      "id": "caa6f8bc-a079-445a-b847-1d85ffc24fdf",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DXNmAukn0vmXQ0pM",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "8471211805",
+        "text": "=invoice Received!\n\nInvoice No  : {{ $('If').item.json.invoice_number }}\nDate        : {{ $('If').item.json.invoice_date }}\nSeller      : {{ $('If').item.json.seller_name }}\nBuyer       : {{ $('If').item.json.buyer_name }}\nAmount      : {{ $('If').item.json.grand_total }} {{ $('If').item.json.currency }}\nStatus      : {{ $('Code in JavaScript3').item.json.status }}\nMissing     : {{ $('Code in JavaScript3').item.json.missing_fields }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3008,
+        -112
+      ],
+      "id": "2498a203-9d1b-4d52-863a-2c57dc1b7815",
+      "name": "Send a text message",
+      "webhookId": "a7b8d344-4dcb-4535-8f41-cfd318c0cca2",
+      "credentials": {
+        "telegramApi": {
+          "id": "IVgZhDjz3QAKfzRG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('If').item.json;\n\nconst fields = [\n  'invoice_number',\n  'invoice_date',\n  'seller_name',\n  'seller_address',\n  'buyer_name',\n  'buyer_address',\n  'grand_total',\n  'currency',\n  'gst_tax_amount',\n  'payment_terms',\n  'tracking_number',\n  'carrier_name',\n  'incoterms'\n];\n\nconst missing = [];\n\nfor (const field of fields) {\n  const val = data[field];\n  if (!val || val === '' || val === null || val === 'null' || val === 'N/A') {\n    missing.push(field);\n  }\n}\n\nconst missingText = missing.join(', ');\n\nconst emailBody = `Dear ${data.seller_name || 'Sender'},\n\nThank you for sending your invoice.\n\nWe reviewed invoice ${data.invoice_number || 'N/A'} and found the following fields are missing:\n\nMissing Fields: ${missingText}\n\nPlease resend the complete invoice with above information.\n\nRegards,\nInvoice Processing Team`;\n\nconst telegramMsg = `Invoice Alert - Fields Missing!\n\nInvoice No : ${data.invoice_number || 'N/A'}\nDate       : ${data.invoice_date || 'N/A'}\nSeller     : ${data.seller_name || 'N/A'}\nBuyer      : ${data.buyer_name || 'N/A'}\nAmount     : ${data.grand_total || 'N/A'} ${data.currency || ''}\nStatus     : Incomplete\nMissing    : ${missingText}`;\n\nreturn [{\n  json: {\n    invoice_number  : data.invoice_number  || 'N/A',\n    invoice_date    : data.invoice_date    || 'N/A',\n    seller_name     : data.seller_name     || 'N/A',\n    buyer_name      : data.buyer_name      || 'N/A',\n    grand_total     : data.grand_total     || 'N/A',\n    currency        : data.currency        || 'N/A',\n    gst_tax_amount  : data.gst_tax_amount  || 'N/A',\n    payment_terms   : data.payment_terms   || 'N/A',\n    tracking_number : data.tracking_number || 'N/A',\n    carrier_name    : data.carrier_name    || 'N/A',\n    incoterms       : data.incoterms       || 'N/A',\n    status          : 'Incomplete',\n    missing_fields  : missingText,\n    email_body      : emailBody,\n    telegram_msg    : telegramMsg\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        112
+      ],
+      "id": "205ead09-003d-4b7c-add9-c73ae1777634",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1Bb2tRVhmYthjBr1gzoFbGfgnryptiTS_1Kgxk9uaOQA",
+          "mode": "list",
+          "cachedResultName": "Invoice_Tracker_v3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb2tRVhmYthjBr1gzoFbGfgnryptiTS_1Kgxk9uaOQA/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 245022230,
+          "mode": "list",
+          "cachedResultName": "Invoice Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Bb2tRVhmYthjBr1gzoFbGfgnryptiTS_1Kgxk9uaOQA/edit#gid=245022230"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_date",
+              "displayName": "invoice_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "seller_name",
+              "displayName": "seller_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "buyer_name",
+              "displayName": "buyer_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "grand_total",
+              "displayName": "grand_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "gst_tax_amount",
+              "displayName": "gst_tax_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "payment_terms",
+              "displayName": "payment_terms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tracking_number",
+              "displayName": "tracking_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "carrier_name",
+              "displayName": "carrier_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "incoterms",
+              "displayName": "incoterms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_on",
+              "displayName": "received_on",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "missing_fields",
+              "displayName": "missing_fields",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2464,
+        112
+      ],
+      "id": "70b23393-ddd1-4a7f-8797-86d17cda7f88",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "DXNmAukn0vmXQ0pM",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "8471211805",
+        "text": "=Invoice Received!\n\nInvoice No  : {{ $('If').item.json.invoice_number }}\nDate        : {{ $('If').item.json.invoice_date }}\nSeller      : {{ $('If').item.json.seller_name }}\nBuyer       : {{ $('If').item.json.buyer_name }}\nAmount      : {{ $('If').item.json.grand_total }} {{ $('If').item.json.currency }}\nGST         : {{ $('If').item.json.gst_tax_amount }}\nPayment     : {{ $('If').item.json.payment_terms }}\nTracking    : {{ $('If').item.json.tracking_number }}\nCarrier     : {{ $('If').item.json.carrier_name }}\nIncoterms   : {{ $('If').item.json.incoterms }}\n\nStatus      : {{ $('If').item.json.status }}\nMissing     : {{ $('If').item.json.missing_fields }}\nErrors      : {{ $('If').item.json.error_fields }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2672,
+        112
+      ],
+      "id": "932642d4-4ac9-4c2b-a333-183778d83875",
+      "name": "Send a text message1",
+      "webhookId": "42f417f9-d849-4bd6-97b2-d9da296a5687",
+      "credentials": {
+        "telegramApi": {
+          "id": "IVgZhDjz3QAKfzRG",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('If').item.json;\n\nconst missingList = data.missing_fields !== 'None' \n  ? data.missing_fields.split(',').map(f => '• ' + f.trim()).join('\\n')\n  : '';\n\nconst errorList = data.error_fields !== 'None'\n  ? data.error_fields.split(',').map(f => '• ' + f.trim()).join('\\n')\n  : '';\n\nlet issueSection = '';\nif (missingList) {\n  issueSection += `Missing Fields:\\n${missingList}\\n\\n`;\n}\nif (errorList) {\n  issueSection += `Invalid Fields:\\n${errorList}\\n\\n`;\n}\n\nconst emailBody = `Dear ${data.seller_name || 'Supplier'},\n\nThank you for sending your invoice (${data.invoice_number || 'N/A'}).\n\nWe have reviewed the document and found the following issues that need to be corrected before we can process payment:\n\n${issueSection}Please resend the corrected invoice at your earliest convenience.\n\nIf you have any questions, please feel free to contact us.\n\nRegards,\nDelta Exports Ltd\nAccounts Payable Team`;\n\nreturn [{\n  json: {\n    ...data,\n    email_body      : emailBody,\n    email_subject   : `Action Required — Invoice ${data.invoice_number || 'N/A'} — Missing/Invalid Fields`,\n    missing_fields  : data.missing_fields || 'None',\n    missing_details : data.missing_details || 'None',\n    error_fields    : data.error_fields || 'None',\n    error_details   : data.error_details || 'None',\n    status          : data.status || 'Incomplete',\n    full_report     : data.full_report || 'None'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        112
+      ],
+      "id": "7722e39e-3a25-494d-b069-9a43c0d7b533",
+      "name": "Code in JavaScript5"
+    },
+    {
+      "parameters": {
+        "operation": "reply",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "emailType": "text",
+        "message": "={{ $('Code in JavaScript5').item.json.email_body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        3088,
+        112
+      ],
+      "id": "e691171a-3d56-4700-8f3d-fe829e0e0dc8",
+      "name": "Reply to a message",
+      "webhookId": "d5850093-47a9-4c30-a895-8011dc3685f9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "jM6rHdQsXAtrqZXK",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Create folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create folder": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript5": {
+      "main": [
+        [
+          {
+            "node": "Reply to a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a6475d7b-a46b-4480-a314-8abe59b0b023",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1b95ae8cf110e24c7f4cead9f400ed73c04ac4bd18db19c645ec68f688f771b5"
+  },
+  "id": "VCb3Vjae28aRlZmF",
+  "tags": []
+}
